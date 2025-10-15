@@ -2,25 +2,30 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>🎓 即時字幕翻譯筆記系統</title>
+  <title>🎓 錄音後翻譯筆記系統</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>📝 即時字幕翻譯 + 錄音筆記</h1>
+  <h1>📝 錄音後全文翻譯 + 筆記</h1>
 
   <button id="start">🎙️ 開始錄音</button>
-  <button id="stop">🛑 停止錄音</button>
+  <button id="stop">🛑 停止錄音 + 翻譯</button>
   <button id="downloadAudio">⬇️ 下載錄音</button>
   <button id="copyMd">📋 複製 Markdown 筆記</button>
 
   <div class="section">
-    <h3>📺 即時字幕（原文 + 翻譯）：</h3>
+    <h3>📺 即時字幕（不翻譯）：</h3>
     <div id="subtitleArea" class="live">(尚未開始錄音)</div>
   </div>
 
   <div class="section">
-    <h3>📜 完整語音轉文字紀錄：</h3>
+    <h3>📜 原文語音紀錄：</h3>
     <textarea id="rawText" placeholder="語音辨識結果會顯示在這裡..."></textarea>
+  </div>
+
+  <div class="section">
+    <h3>🌐 翻譯後全文：</h3>
+    <textarea id="translatedText" placeholder="翻譯結果會在這裡顯示..."></textarea>
   </div>
 
   <script src="script.js"></script>
