@@ -1,15 +1,22 @@
 let recognition;
 let finalTranscript = '';
+let subtitleSegments = [];
 let recognizing = false;
 let shouldAutoRestart = false;
 let mediaRecorder;
 let audioChunks = [];
 
+async function translateText(text, targetLang = 'en') {
+  const res = await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=" + targetLang + "&dt=t&q=" + encodeURIComponent(text));
+  const data = await res.json();
+  return data[0].map(item => item[0]).join("");
+}
+
 if ('webkitSpeechRecognition' in window) {
   recognition = new webkitSpeechRecognition();
   recognition.continuous = true;
   recognition.interimResults = true;
-  recognition.lang = 'zh-TW'; // 支援中英混合
+  recognition.lang = 'zh-TW'; // 中英混合
 
   recognition.onstart = () => {
     recognizing = true;
@@ -23,38 +30,47 @@ if ('webkitSpeechRecognition' in window) {
   recognition.onend = () => {
     recognizing = false;
     console.log("🛑 語音辨識結束");
-    if (shouldAutoRestart) {
-      console.log("🔁 嘗試自動重啟辨識");
-      recognition.start();
-    }
+    if (shouldAutoRestart) recognition.start();
   };
 
-  recognition.onresult = (event) => {
+  recognition.onresult = async (event) => {
     let interim = '';
     for (let i = event.resultIndex; i < event.results.length; ++i) {
       const transcript = event.results[i][0].transcript;
       if (event.results[i].isFinal) {
-        finalTranscript += transcript.trim() + ".\n";
+        const original = transcript.trim();
+        const translated = await translateText(original, 'en');
+        subtitleSegments.push({ original, translated });
+        finalTranscript = subtitleSegments.map((s, i) =>
+          `(${i + 1}) ${s.original}\n    → ${s.translated}`).join("\n");
       } else {
-        interim += transcript;
-        finalTranscript += "(暫) " + transcript.trim() + "\n";
+        interim = transcript;
       }
     }
+
+    const interimLine = interim ? `\n>> ${interim}` : '';
     document.getElementById('rawText').value = finalTranscript;
-    document.getElementById('live').textContent = interim;
+    document.getElementById('subtitleArea').textContent =
+      subtitleSegments.map((s, i) =>
+        `(${i + 1}) ${s.original}\n    → ${s.translated}`).join('\n') + interimLine;
   };
 } else {
   alert('❌ 你的瀏覽器不支援語音辨識，請使用 Chrome 桌機版');
 }
 
 document.getElementById('start').onclick = async () => {
+  if (recognizing) {
+    alert("⚠️ 錄音已在進行中，請先按『停止錄音』再重新開始！");
+    return;
+  }
+
   finalTranscript = '';
+  subtitleSegments = [];
   document.getElementById('rawText').value = '';
-  document.getElementById('live').textContent = '...錄音中';
+  document.getElementById('subtitleArea').textContent = '...錄音中，請開始說話';
   shouldAutoRestart = true;
   recognition.start();
 
-  // 啟動 MediaRecorder 錄音
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   mediaRecorder = new MediaRecorder(stream);
   audioChunks = [];
@@ -70,8 +86,7 @@ document.getElementById('start').onclick = async () => {
 document.getElementById('stop').onclick = () => {
   shouldAutoRestart = false;
   recognition.stop();
-  document.getElementById('live').textContent = '(已停止)';
-
+  document.getElementById('subtitleArea').textContent += '\n(已停止錄音)';
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
   }
@@ -92,12 +107,9 @@ document.getElementById('downloadAudio').onclick = () => {
 };
 
 document.getElementById('copyMd').onclick = () => {
-  const rawText = document.getElementById('rawText').value;
-  const mdText = "## 📚 自動筆記（Markdown）\n\n" + rawText.split('\n')
-    .filter(line => line.trim())
-    .map(line => `- ${line.trim()}`)
-    .join('\n');
-  navigator.clipboard.writeText(mdText)
-    .then(() => alert("✅ 已複製成 Markdown 條列筆記"))
+  const text = subtitleSegments.map(s => `- ${s.original}\n  → ${s.translated}`).join("\n");
+  const md = "## 📚 即時翻譯筆記\n\n" + text;
+  navigator.clipboard.writeText(md)
+    .then(() => alert("✅ 已複製 Markdown 筆記"))
     .catch(() => alert("❌ 複製失敗"));
 };
