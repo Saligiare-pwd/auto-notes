@@ -2,6 +2,8 @@ let recognition;
 let finalTranscript = '';
 let recognizing = false;
 let shouldAutoRestart = false;
+let mediaRecorder;
+let audioChunks = [];
 
 if ('webkitSpeechRecognition' in window) {
   recognition = new webkitSpeechRecognition();
@@ -35,6 +37,7 @@ if ('webkitSpeechRecognition' in window) {
         finalTranscript += transcript.trim() + ".\n";
       } else {
         interim += transcript;
+        finalTranscript += "(暫) " + transcript.trim() + "\n";
       }
     }
     document.getElementById('rawText').value = finalTranscript;
@@ -44,18 +47,48 @@ if ('webkitSpeechRecognition' in window) {
   alert('❌ 你的瀏覽器不支援語音辨識，請使用 Chrome 桌機版');
 }
 
-document.getElementById('start').onclick = () => {
+document.getElementById('start').onclick = async () => {
   finalTranscript = '';
   document.getElementById('rawText').value = '';
   document.getElementById('live').textContent = '...錄音中';
   shouldAutoRestart = true;
   recognition.start();
+
+  // 啟動 MediaRecorder 錄音
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  mediaRecorder = new MediaRecorder(stream);
+  audioChunks = [];
+
+  mediaRecorder.ondataavailable = event => {
+    if (event.data.size > 0) {
+      audioChunks.push(event.data);
+    }
+  };
+  mediaRecorder.start();
 };
 
 document.getElementById('stop').onclick = () => {
   shouldAutoRestart = false;
   recognition.stop();
   document.getElementById('live').textContent = '(已停止)';
+
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+};
+
+document.getElementById('downloadAudio').onclick = () => {
+  if (audioChunks.length > 0) {
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const a = document.createElement('a');
+    a.href = audioUrl;
+    a.download = 'recording.webm';
+    a.click();
+    URL.revokeObjectURL(audioUrl);
+  } else {
+    alert("⚠️ 尚未錄音或沒有錄音資料");
+  }
 };
 
 document.getElementById('copyMd').onclick = () => {
