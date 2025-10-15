@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>🎓 自動上課筆記產生器</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>📝 自動上課筆記產生器</h1>
+
+  <button id="start">🎙️ 開始錄音</button>
+  <button id="stop">🛑 停止錄音</button>
+  <button id="copyMd">📋 複製 Markdown 筆記</button>
+
+  <div class="section">
+    <h3>💬 即時字幕：</h3>
+    <div id="live" class="live">(尚未開始錄音)</div>
+  </div>
+
+  <div class="section">
+    <h3>📜 完整語音轉文字：</h3>
+    <textarea id="rawText" placeholder="語音辨識結果會顯示在這裡..."></textarea>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
